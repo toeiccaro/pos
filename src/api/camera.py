@@ -1,43 +1,37 @@
-# camera.py
-
+# src/api/camera.py
 import cv2
-import threading
 
 class Camera:
-    def __init__(self, video_source=0):
+    def __init__(self, video_source=0, rtsp_output_url="rtsp://localhost:8554/live.sdp"):
         self.video_source = video_source
-        self.cap = cv2.VideoCapture(self.video_source)
+        self.cap = cv2.VideoCapture(video_source)
         if not self.cap.isOpened():
-            raise RuntimeError("Không thể mở webcam")
-
-        # Thiết lập các thuộc tính nếu cần
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-        self.ret = False
-        self.frame = None
-        self.lock = threading.Lock()
-        self.running = True
-
-        # Bắt đầu luồng đọc khung hình
-        self.thread = threading.Thread(target=self.update, args=())
-        self.thread.start()
-
-    def update(self):
-        while self.running:
-            ret, frame = self.cap.read()
-            if not ret:
-                continue
-            with self.lock:
-                self.ret = ret
-                self.frame = frame
-
+            raise Exception(f"Cannot open video source {video_source}")
+        
+        # RTSP Output Stream setup (Sử dụng OpenCV để phát video qua RTSP)
+        self.rtsp_output_url = rtsp_output_url
+        fourcc = cv2.VideoWriter_fourcc(*"H264")
+        self.out = cv2.VideoWriter(self.rtsp_output_url, fourcc, 20.0, (640, 480))
+    
     def get_frame(self):
-        with self.lock:
-            return self.ret, self.frame.copy() if self.frame is not None else (False, None)
-
-    def __del__(self):
-        self.running = False
-        self.thread.join()
-        if self.cap.isOpened():
-            self.cap.release()
+        """
+        Lấy một khung hình từ video source
+        """
+        ret, frame = self.cap.read()
+        if not ret:
+            return None, None
+        return ret, frame
+    
+    def send_frame_to_rtsp(self, frame):
+        """
+        Gửi khung hình đến RTSP stream.
+        """
+        if frame is not None:
+            self.out.write(frame)
+    
+    def release(self):
+        """
+        Giải phóng tài nguyên khi không sử dụng nữa
+        """
+        self.cap.release()
+        self.out.release()
