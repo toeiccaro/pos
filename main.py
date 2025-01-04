@@ -1,10 +1,12 @@
 # main.py
-from fastapi import FastAPI, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 import cv2
 from src.api.camera import Camera
 import subprocess
+import httpx
+import base64
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -45,6 +47,15 @@ async def video_feed():
     """
     return StreamingResponse(generate_frames(),
                              media_type="multipart/x-mixed-replace; boundary=frame")
+    
+    
+    
+    
+    
+
+
+    
+
 
 # @app.get("/rtsp_feed")
 # async def rtsp_feed():
